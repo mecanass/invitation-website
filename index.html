@@ -414,6 +414,44 @@
     opacity:1;
     transform:translateY(0);
   }
+
+  /* ---------- music toggle ---------- */
+  .music-toggle{
+    position:fixed;
+    bottom:22px;
+    right:22px;
+    z-index:50;
+    width:52px;
+    height:52px;
+    border-radius:50%;
+    background:linear-gradient(180deg, var(--gold-light), var(--gold));
+    border:1px solid rgba(255,255,255,.45);
+    box-shadow:0 10px 26px -6px rgba(0,0,0,.5);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    color:var(--burgundy-deep);
+    transition:transform .3s ease, box-shadow .3s ease;
+  }
+  .music-toggle:hover{ transform:scale(1.06); }
+  .music-toggle svg{ width:20px; height:20px; }
+  .music-toggle .bars{ display:flex; align-items:center; gap:2px; height:16px; }
+  .music-toggle .bars span{
+    display:block;
+    width:3px;
+    background:var(--burgundy-deep);
+    border-radius:2px;
+    animation:eq 1s ease-in-out infinite;
+  }
+  .music-toggle .bars span:nth-child(1){ height:6px; animation-delay:0s; }
+  .music-toggle .bars span:nth-child(2){ height:16px; animation-delay:.2s; }
+  .music-toggle .bars span:nth-child(3){ height:10px; animation-delay:.4s; }
+  .music-toggle.paused .bars span{ animation-play-state:paused; height:5px !important; }
+  @keyframes eq{
+    0%,100%{ transform:scaleY(0.4); }
+    50%{ transform:scaleY(1); }
+  }
 </style>
 </head>
 <body>
@@ -427,7 +465,7 @@
     <div class="basmala">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
     <div class="names-ar">كَوثَر<span class="amp-ar">و</span>أَنَس</div>
     <div class="names-fr">Kaoutar &amp; Anass</div>
-    <div class="hero-date">8 Août 2026 · Fès</div>
+    <div class="hero-date">8 Août 2026 · 19h · Fès</div>
   </div>
   <div class="scroll-cue" aria-hidden="true">
     <span>Découvrir</span>
@@ -442,7 +480,7 @@
 </section>
 
 <section class="countdown-wrap reveal">
-  <div class="countdown-title">Nous nous disons « oui »</div>
+  <div class="countdown-title">Le grand jour approche</div>
   <div class="countdown-sub">Dans</div>
   <div class="countdown" id="countdown">
     <div class="cd-unit"><div class="cd-num" id="cd-days">00</div><div class="cd-label">Jours</div></div>
@@ -456,7 +494,7 @@
   <div class="detail-card">
     <div class="eyebrow detail-eyebrow">La date</div>
     <div class="detail-main">Samedi 8 Août 2026</div>
-    <div class="detail-sub">أغسطس 2026 — السبت</div>
+    <div class="detail-sub">19h00 · أغسطس 2026 — السبت — الساعة 19:00</div>
   </div>
   <div class="detail-card">
     <div class="eyebrow detail-eyebrow">Le lieu</div>
@@ -484,11 +522,16 @@
   </div>
 </section>
 
-<footer>Kaoutar &amp; Anass · 8 Août 2026 · Fès</footer>
+<footer>Kaoutar &amp; Anass · 8 Août 2026 · 19h · Fès</footer>
+
+<audio id="bgMusic" src="assets/music.mp3" loop preload="auto"></audio>
+<button class="music-toggle paused" id="musicToggle" aria-label="Activer la musique" aria-pressed="false">
+  <span class="bars"><span></span><span></span><span></span></span>
+</button>
 
 <script>
   // Countdown
-  const target = new Date('2026-08-08T18:00:00');
+  const target = new Date('2026-08-08T19:00:00');
   function updateCountdown(){
     const now = new Date();
     let diff = target - now;
@@ -527,6 +570,49 @@
   }
   spawnPetals('heroPetals', 16);
   spawnPetals('rsvpPetals', 14);
+
+  // Music: try to autoplay; if the browser blocks it, start on the very
+  // first interaction (click / touch / scroll / key) — this is the closest
+  // to true autoplay that browser autoplay policies allow.
+  const bgMusic = document.getElementById('bgMusic');
+  const musicToggle = document.getElementById('musicToggle');
+  let musicPlaying = false;
+
+  function setPlayingUI(isPlaying){
+    musicPlaying = isPlaying;
+    musicToggle.classList.toggle('paused', !isPlaying);
+    musicToggle.setAttribute('aria-pressed', isPlaying ? 'true' : 'false');
+    musicToggle.setAttribute('aria-label', isPlaying ? 'Mettre la musique en pause' : 'Activer la musique');
+  }
+
+  function tryAutoplay(){
+    bgMusic.play().then(()=>{
+      setPlayingUI(true);
+    }).catch(()=>{
+      setPlayingUI(false);
+      const startOnFirstInteraction = ()=>{
+        bgMusic.play().then(()=> setPlayingUI(true)).catch(()=>{});
+        window.removeEventListener('click', startOnFirstInteraction);
+        window.removeEventListener('touchstart', startOnFirstInteraction);
+        window.removeEventListener('scroll', startOnFirstInteraction);
+        window.removeEventListener('keydown', startOnFirstInteraction);
+      };
+      window.addEventListener('click', startOnFirstInteraction, {once:true});
+      window.addEventListener('touchstart', startOnFirstInteraction, {once:true});
+      window.addEventListener('scroll', startOnFirstInteraction, {once:true});
+      window.addEventListener('keydown', startOnFirstInteraction, {once:true});
+    });
+  }
+  tryAutoplay();
+
+  musicToggle.addEventListener('click', ()=>{
+    if(musicPlaying){
+      bgMusic.pause();
+      setPlayingUI(false);
+    } else {
+      bgMusic.play().then(()=> setPlayingUI(true)).catch(()=>{});
+    }
+  });
 
   // Reveal on scroll
   const reveals = document.querySelectorAll('.reveal');
