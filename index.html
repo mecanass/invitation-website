@@ -416,11 +416,54 @@
   }
 
   /* ---------- music toggle ---------- */
-  .music-toggle{
+  .music-wrap{
     position:fixed;
     bottom:22px;
     right:22px;
     z-index:50;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .music-hint{
+    background:var(--burgundy-deep);
+    color:var(--ivory);
+    font-family:'Cormorant', serif;
+    font-size:.78rem;
+    letter-spacing:.04em;
+    padding:9px 16px;
+    border-radius:20px;
+    white-space:nowrap;
+    box-shadow:0 8px 20px -6px rgba(0,0,0,.4);
+    opacity:0;
+    transform:translateX(6px) scale(.95);
+    animation:hintIn .5s ease .6s forwards, hintFloat 2.6s ease-in-out 1.1s infinite;
+    pointer-events:none;
+  }
+  .music-hint::after{
+    content:'';
+    position:absolute;
+    right:-5px;
+    top:50%;
+    width:10px;height:10px;
+    background:var(--burgundy-deep);
+    transform:translateY(-50%) rotate(45deg);
+  }
+  .music-hint.hidden{
+    animation:none;
+    opacity:0;
+    transform:translateX(6px) scale(.95);
+    transition:opacity .4s ease, transform .4s ease;
+  }
+  @keyframes hintIn{
+    to{ opacity:1; transform:translateX(0) scale(1); }
+  }
+  @keyframes hintFloat{
+    0%,100%{ transform:translateX(0) translateY(0); }
+    50%{ transform:translateX(0) translateY(-4px); }
+  }
+  .music-toggle{
+    position:relative;
     width:52px;
     height:52px;
     border-radius:50%;
@@ -433,10 +476,29 @@
     cursor:pointer;
     color:var(--burgundy-deep);
     transition:transform .3s ease, box-shadow .3s ease;
+    flex:0 0 auto;
+  }
+  .music-toggle::before{
+    content:'';
+    position:absolute;
+    inset:-2px;
+    border-radius:50%;
+    border:1.5px solid var(--gold-light);
+    opacity:0;
+  }
+  .music-toggle.paused::before{
+    animation:ringPulse 2s ease-out infinite;
+  }
+  @keyframes ringPulse{
+    0%{ opacity:.7; transform:scale(1); }
+    100%{ opacity:0; transform:scale(1.45); }
   }
   .music-toggle:hover{ transform:scale(1.06); }
-  .music-toggle svg{ width:20px; height:20px; }
-  .music-toggle .bars{ display:flex; align-items:center; gap:2px; height:16px; }
+  .music-toggle .note-icon{
+    width:20px; height:20px;
+    display:block;
+  }
+  .music-toggle .bars{ display:none; align-items:center; gap:2px; height:16px; }
   .music-toggle .bars span{
     display:block;
     width:3px;
@@ -447,7 +509,10 @@
   .music-toggle .bars span:nth-child(1){ height:6px; animation-delay:0s; }
   .music-toggle .bars span:nth-child(2){ height:16px; animation-delay:.2s; }
   .music-toggle .bars span:nth-child(3){ height:10px; animation-delay:.4s; }
-  .music-toggle.paused .bars span{ animation-play-state:paused; height:5px !important; }
+  .music-toggle.paused .note-icon{ display:block; }
+  .music-toggle.paused .bars{ display:none; }
+  .music-toggle:not(.paused) .note-icon{ display:none; }
+  .music-toggle:not(.paused) .bars{ display:flex; }
   @keyframes eq{
     0%,100%{ transform:scaleY(0.4); }
     50%{ transform:scaleY(1); }
@@ -525,9 +590,17 @@
 <footer>Kaoutar &amp; Anass · 8 Août 2026 · 19h · Fès</footer>
 
 <audio id="bgMusic" src="assets/music.mp3" loop preload="auto"></audio>
-<button class="music-toggle paused" id="musicToggle" aria-label="Activer la musique" aria-pressed="false">
-  <span class="bars"><span></span><span></span><span></span></span>
-</button>
+<div class="music-wrap">
+  <div class="music-hint" id="musicHint">Appuyez pour la musique 🎵</div>
+  <button class="music-toggle paused" id="musicToggle" aria-label="Activer la musique" aria-pressed="false">
+    <svg class="note-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M9 18V5l11-2v13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="6.5" cy="18" r="2.5" stroke="currentColor" stroke-width="1.6"/>
+      <circle cx="17.5" cy="16" r="2.5" stroke="currentColor" stroke-width="1.6"/>
+    </svg>
+    <span class="bars"><span></span><span></span><span></span></span>
+  </button>
+</div>
 
 <script>
   // Countdown
@@ -576,6 +649,7 @@
   // to true autoplay that browser autoplay policies allow.
   const bgMusic = document.getElementById('bgMusic');
   const musicToggle = document.getElementById('musicToggle');
+  const musicHint = document.getElementById('musicHint');
   let musicPlaying = false;
 
   function setPlayingUI(isPlaying){
@@ -583,6 +657,7 @@
     musicToggle.classList.toggle('paused', !isPlaying);
     musicToggle.setAttribute('aria-pressed', isPlaying ? 'true' : 'false');
     musicToggle.setAttribute('aria-label', isPlaying ? 'Mettre la musique en pause' : 'Activer la musique');
+    if(isPlaying){ musicHint.classList.add('hidden'); }
   }
 
   function tryAutoplay(){
